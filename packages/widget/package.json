@@ -1,0 +1,100 @@
+{
+  "name": "@lifi/widget",
+  "version": "3.31.0",
+  "description": "LI.FI Widget for cross-chain bridging and swapping. It will drive your multi-chain strategy and attract new users from everywhere.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.d.ts",
+  "sideEffects": false,
+  "scripts": {
+    "watch": "tsc -w -p ./tsconfig.json",
+    "build": "pnpm clean && pnpm build:version && pnpm build:esm && pnpm build:clean",
+    "build:esm": "tsc --build",
+    "build:prerelease": "node ../../scripts/prerelease.js && cpy '../../*.md' .",
+    "build:postrelease": "node ../../scripts/postrelease.js && rm -rf *.md",
+    "build:version": "node ../../scripts/version.js",
+    "build:clean": "rm -rf tsconfig.tsbuildinfo ./dist/tsconfig.tsbuildinfo",
+    "release:build": "pnpm build",
+    "clean": "pnpm build:clean && rm -rf dist",
+    "check:types": "tsc --noEmit",
+    "check:circular-deps": "madge --circular $(find ./src -name '*.ts' -o -name '*.tsx')",
+    "check:circular-deps-graph": "madge --circular $(find ./src -name '*.ts' -o -name '*.tsx') --image graph.svg",
+    "link:bigmi": "pnpm link @bigmi/client",
+    "unlink:bigmi": "pnpm link @bigmi/client",
+    "link:sdk": "pnpm link @lifi/sdk",
+    "unlink:sdk": "pnpm unlink @lifi/sdk",
+    "test": "vitest run"
+  },
+  "author": "Eugene Chybisov <eugene@li.finance>",
+  "homepage": "https://github.com/lifinance/widget",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lifinance/widget.git",
+    "directory": "packages/widget"
+  },
+  "bugs": {
+    "url": "https://github.com/lifinance/widget/issues"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "widget",
+    "lifi-widget",
+    "bridge",
+    "swap",
+    "cross-chain",
+    "multi-chain",
+    "metamask",
+    "ethereum",
+    "web3",
+    "lifi"
+  ],
+  "dependencies": {
+    "@bigmi/client": "^0.5.2",
+    "@bigmi/core": "^0.5.2",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@lifi/sdk": "^3.12.8",
+    "@lifi/wallet-management": "workspace:^",
+    "@mui/icons-material": "^7.3.2",
+    "@mui/material": "^7.3.2",
+    "@mui/system": "^7.3.2",
+    "@mysten/sui": "^1.38.0",
+    "@solana/wallet-adapter-base": "^0.9.27",
+    "@solana/wallet-adapter-coinbase": "^0.1.23",
+    "@solana/web3.js": "^1.98.4",
+    "@tanstack/react-virtual": "^3.13.12",
+    "i18next": "^25.5.2",
+    "microdiff": "^1.5.0",
+    "mitt": "^3.0.1",
+    "porto": "^0.2.10",
+    "react-i18next": "^15.7.3",
+    "react-intersection-observer": "^9.16.0",
+    "react-router-dom": "^6.30.0",
+    "react-transition-group": "^4.4.5",
+    "viem": "^2.37.6",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@types/react-transition-group": "^4.4.12",
+    "cpy-cli": "^6.0.0",
+    "madge": "^8.0.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "peerDependencies": {
+    "@bigmi/react": ">=0.5.0",
+    "@mysten/dapp-kit": ">=0.18.0",
+    "@solana/wallet-adapter-react": ">=0.15.35",
+    "@tanstack/react-query": ">=5.87.0",
+    "react": ">=18",
+    "react-dom": ">=18",
+    "wagmi": ">=2.16.0"
+  },
+  "files": [
+    "dist/**",
+    "src/**",
+    "!tsconfig.json"
+  ]
+}

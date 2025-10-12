@@ -1,0 +1,351 @@
+{
+  "language": {
+    "name": "अंग्रेज़ी",
+    "title": "भाषा"
+  },
+  "format": {
+    "currency": "",
+    "number": "{{मूल्य, संख्या(अधिकतम अंश अंक: 9)}}",
+    "percent": "",
+    "tokenAmount": ""
+  },
+  "button": {
+    "auto": "स्वतः",
+    "bookmark": "",
+    "bookmarks": "",
+    "bridge": "",
+    "bridgeReview": "",
+    "buy": "",
+    "cancel": "रद्द करें",
+    "checkoutReview": "",
+    "close": "",
+    "confirm": "",
+    "connectAnotherWallet": "",
+    "connectChainWallet": "",
+    "connectWallet": "वॉलेट से जुड़ें?",
+    "contactSupport": "ग्राहक सेवा के लिए संपर्क करें",
+    "continue": "जारी रखें",
+    "copyAddress": "पता कॉपी करें",
+    "dark": "अँधेरा",
+    "delete": "हटाएं",
+    "deposit": "",
+    "depositReview": "",
+    "disconnect": "संपर्क तोड़ें",
+    "done": "समाप्त",
+    "exchange": "",
+    "getGas": "गेस शुल्क ले",
+    "learnMore": "",
+    "light": "रोशनी",
+    "max": "",
+    "ok": "ठीक है",
+    "options": "",
+    "removeTransaction": "",
+    "reset": "कुंजी: बटन. रीसेट करें\nबटन -> रीसेट करें",
+    "resetSettings": "कुंजी: बटन. सेटिंग्स रीसेट करें\nबटन -> सेटिंग्स रीसेट करें",
+    "seeDetails": "कुंजी: बटन. जानकारी देखें\nबटन -> जानकारी देखें",
+    "showAll": "कुंजी: बटन. सभी दिखाएँ\nबटन -> सभी दिखाएँ",
+    "startBridging": "",
+    "startSwapping": "",
+    "swap": "कुंजी: बटन. विनिमय \nबटन -> विनिमय ",
+    "swapReview": "",
+    "system": "",
+    "tryAgain": "कुंजी: बटन. दुबारा प्रयाश करें\nबटन -> दुबारा प्रयाश करें",
+    "viewCoverage": "",
+    "viewOnExplorer": "कुंजी: बटन. एक्स्प्लोरर पर देखें\nबटन -> एक्स्प्लोरर पर देखें"
+  },
+  "header": {
+    "activeTransactions": "",
+    "amount": "",
+    "bookmarkedWallets": "",
+    "bridge": "",
+    "checkout": "जाँच कर ले",
+    "checkoutDetails": "",
+    "deposit": "",
+    "depositDetails": "",
+    "depositTo": "",
+    "exchange": "",
+    "from": "",
+    "gas": "गैस",
+    "payWith": "",
+    "receive": "",
+    "received": "",
+    "recentWallets": "",
+    "refunded": "",
+    "selectChain": "चैन चुने",
+    "selectWallet": "वॉलेट चुनाव करे",
+    "send": "",
+    "sendToWallet": "",
+    "settings": "सेटिंग्स",
+    "swap": "विनिमय",
+    "to": "",
+    "transactionDetails": "",
+    "transactionHistory": "",
+    "walletConnected": "वॉलेट जुड़ा हुआ हे",
+    "youGet": "",
+    "youPay": ""
+  },
+  "info": {
+    "message": {
+      "accountDeployedMessage": "",
+      "autoRefuel": "",
+      "emptyActiveTransactions": "",
+      "emptyBridgesList": "",
+      "emptyChainList": "",
+      "emptyExchangesList": "",
+      "emptyTokenListAllNetworks": "",
+      "emptyTransactionHistory": "",
+      "routeNotFound": "",
+      "toAddressIsRequired": "",
+      "missingRouteRequiredAccount": ""
+    },
+    "title": {
+      "autoRefuel": "",
+      "emptyActiveTransactions": "",
+      "emptyTransactionHistory": "",
+      "routeNotFound": ""
+    }
+  },
+  "success": {
+    "message": {
+      "exchangePartiallySuccessful": ""
+    },
+    "title": {
+      "bridgePartiallySuccessful": "",
+      "bridgeSuccessful": "",
+      "depositSuccessful": "",
+      "checkoutSuccessful": "",
+      "refundIssued": "",
+      "swapPartiallySuccessful": "",
+      "swapSuccessful": ""
+    }
+  },
+  "warning": {
+    "message": {
+      "accountNotDeployedMessage": "",
+      "lowAddressActivity": "",
+      "deleteActiveTransactions": "",
+      "deleteTransactionHistory": "",
+      "fundsLossPrevention": "",
+      "highValueLoss": "",
+      "insufficientFunds": "",
+      "insufficientGas": "",
+      "minFromAmountUSD": "",
+      "rateChanged": "",
+      "resetSettings": "",
+      "slippageOutsideRecommendedLimits": "",
+      "slippageUnderRecommendedLimits": ""
+    },
+    "title": {
+      "deleteActiveTransactions": "",
+      "deleteTransaction": "",
+      "deleteTransactionHistory": "",
+      "highValueLoss": "",
+      "insufficientGas": "",
+      "rateChanged": "",
+      "resetSettings": "",
+      "lowAddressActivity": ""
+    }
+  },
+  "error": {
+    "message": {
+      "allowanceRequired": "",
+      "insufficientFunds": "",
+      "rateLimitExceeded": "",
+      "remainInYourWallet": "",
+      "signatureRejected": "",
+      "slippageThreshold": "",
+      "thirdPartyError": "",
+      "transactionCanceled": "",
+      "transactionConflict": "",
+      "transactionExpired": "",
+      "transactionRejected": "",
+      "transactionFailed": "",
+      "transactionNotSent": "",
+      "transactionSimulationFailed": "",
+      "unknown": "",
+      "walletChangedDuringExecution": ""
+    },
+    "title": {
+      "allowanceRequired": "",
+      "balanceIsTooLow": "",
+      "bookmarkAlreadyExists": "",
+      "bookmarkNameRequired": "",
+      "chainSwitch": "",
+      "exchangeRateUpdateCanceled": "",
+      "gasLimitIsTooLow": "",
+      "insufficientFunds": "",
+      "insufficientGas": "",
+      "rateLimitExceeded": "",
+      "signatureRejected": "",
+      "slippageNotMet": "",
+      "thirdPartyError": "",
+      "transactionCanceled": "",
+      "transactionConflict": "",
+      "transactionExpired": "",
+      "transactionFailed": "",
+      "transactionRejected": "",
+      "transactionSimulationFailed": "",
+      "transactionUnderpriced": "",
+      "transactionUnprepared": "",
+      "unknown": "",
+      "walletAddressInvalid": "",
+      "walletAddressInvalid_chain": "",
+      "walletAddressRequired": "",
+      "walletChainTypeInvalid": "",
+      "walletMismatch": ""
+    }
+  },
+  "tooltip": {
+    "deselectAll": "",
+    "estimatedTime": "",
+    "feeCollection": "",
+    "minReceived": "",
+    "notFound": {
+      "text": "हमें यह पेज नहीं मिल सका",
+      "title": "404"
+    },
+    "relayerService": "",
+    "numberOfSteps": "",
+    "priceImpact": "",
+    "progressToNextUpdate": "",
+    "selectAll": "",
+    "settingsModified": "सेटिंग्स (modified)",
+    "slippage": ""
+  },
+  "main": {
+    "allNetworks": "",
+    "allTokens": "",
+    "bridgeStepDetails": "",
+    "checkoutStepDetails": "",
+    "currentAmount": "",
+    "depositStepDetails": "",
+    "featuredTokens": "",
+    "fees": {
+      "defaultIntegrator": "",
+      "relayerService": "",
+      "estimated": "",
+      "free": "",
+      "network": "",
+      "paid": "",
+      "provider": ""
+    },
+    "from": "",
+    "inProgress": "",
+    "maxSlippage": "",
+    "minReceived": "",
+    "myTokens": "",
+    "onChain": "",
+    "ownedBy": "",
+    "popularTokens": "",
+    "priceImpact": "",
+    "process": {
+      "bridge": {
+        "actionRequired": "",
+        "messageRequired": "",
+        "done": "",
+        "pending": "",
+        "started": ""
+      },
+      "checkout": {
+        "done": ""
+      },
+      "deposit": {
+        "done": ""
+      },
+      "receivingChain": {
+        "done": "",
+        "partial": "",
+        "pending": "",
+        "refunded": ""
+      },
+      "swap": {
+        "actionRequired": "",
+        "messageRequired": "",
+        "done": "",
+        "pending": "",
+        "started": ""
+      },
+      "permit": {
+        "actionRequired": "",
+        "done": "",
+        "pending": "",
+        "started": ""
+      },
+      "tokenAllowance": {
+        "actionRequired": "",
+        "done": "",
+        "pending": "",
+        "started": ""
+      }
+    },
+    "quotedAmount": "",
+    "rateChange": "",
+    "receiving": "",
+    "refuelStepDetails": "",
+    "selectChain": "चैन चुने",
+    "selectChainAndToken": "",
+    "selectToken": "",
+    "sendToAddress": "",
+    "sendToWallet": "",
+    "sending": "",
+    "sentToAddress": "",
+    "stepBridge": "",
+    "stepBridgeAndBuy": "",
+    "stepBridgeAndDeposit": "",
+    "stepBuy": "",
+    "stepDeposit": "",
+    "stepDetails": "",
+    "stepSwap": "",
+    "stepSwapAndBridge": "",
+    "stepSwapAndBuy": "",
+    "stepSwapAndDeposit": "",
+    "swapStepDetails": "",
+    "transferId": "",
+    "tags": {
+      "cheapest": "",
+      "fastest": "",
+      "gasless": ""
+    },
+    "to": "",
+    "tokenOnChain": "",
+    "tokenOnChainAmount": "",
+    "tokenSearch": "",
+    "valueLoss": "",
+    "searchBridges": "",
+    "searchExchanges": "",
+    "searchNetwork": ""
+  },
+  "settings": {
+    "appearance": "",
+    "enabledBridges": "",
+    "enabledExchanges": "",
+    "gasPrice": {
+      "fast": "तेज",
+      "normal": "सामान्य",
+      "slow": "धीमा",
+      "title": "गैस की कीमत"
+    },
+    "routePriority": "मार्ग प्राथमिकता",
+    "slippage": "",
+    "custom": "",
+    "resetSettings": ""
+  },
+  "sendToWallet": {
+    "addBookmark": "",
+    "bookmarkWallet": "",
+    "confirmWalletAddress": "",
+    "connectedWallets": "",
+    "enterAddress_long": "",
+    "enterAddress_short": "",
+    "enterName": "",
+    "noBookmarkedWallets": "",
+    "noConnectedWallets": "",
+    "noRecentWallets": ""
+  },
+  "tokenMetric": {
+    "currentPrice": "",
+    "contractAddress": "",
+    "marketCap": "",
+    "volume24h": ""
+  }
+}

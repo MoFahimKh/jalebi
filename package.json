@@ -1,0 +1,74 @@
+{
+  "version": "3.31.0",
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r --parallel --filter './packages/**' --filter !'*-playground-*' --filter !'*-embedded' build && pnpm -r --parallel --filter './packages/**' --filter '*-playground-*' --filter '*-embedded' build",
+    "clean": "pnpm -r --parallel --filter './packages/**' clean",
+    "clean:cache": "pnpm store prune",
+    "clean:modules": "find . -name \"node_modules\" -type d -prune -exec rm -rf {} +",
+    "clean:modules:trash": "find . -name \"node_modules\" -type d -prune -exec trash {} +",
+    "dev": "pnpm --filter widget-playground-vite dev",
+    "dev:next": "pnpm --filter widget-playground-next dev",
+    "release": "pnpm release:version && pnpm release:build && pnpm standard-version -a -s",
+    "release:alpha": "pnpm release:version --preid alpha && pnpm release:build && pnpm standard-version -a -s --prerelease alpha --skip.changelog",
+    "release:beta": "pnpm release:version --preid beta && pnpm release:build && pnpm standard-version -a -s --prerelease beta --skip.changelog",
+    "release:version": "lerna version --no-changelog --no-push --no-git-tag-version --no-private",
+    "release:build": "pnpm -r --parallel release:build",
+    "release:publish:build": "pnpm release:build && pnpm -r --parallel build:prerelease",
+    "release:publish": "pnpm release:publish:build && pnpm -r publish --access public --no-git-checks --tag latest && pnpm release:clean",
+    "release:publish:alpha": "pnpm release:publish:build && pnpm -r publish --access public --no-git-checks --tag alpha && pnpm release:clean",
+    "release:publish:beta": "pnpm release:publish:build && pnpm -r publish --access public --no-git-checks --tag beta && pnpm release:clean",
+    "release:clean": "pnpm -r --parallel --filter './packages/**' --filter '!*-playground-*' --filter '!*-embedded' exec sh -c \"node ../../scripts/postrelease.js && rm -rf *.md\"",
+    "check": "biome check",
+    "check:write": "biome check --write",
+    "check:write:unsafe": "biome check --write --unsafe",
+    "check:types": "pnpm -r --parallel check:types",
+    "check:circular-deps": "pnpm -r --parallel check:circular-deps",
+    "link:bigmi": "pnpm -r --parallel link:bigmi",
+    "unlink:bigmi": "pnpm -r --parallel unlink:bigmi",
+    "link:sdk": "pnpm -r --parallel link:sdk",
+    "unlink:sdk": "pnpm -r --parallel unlink:sdk",
+    "pre-commit": "pnpm check && pnpm check:types && pnpm check:circular-deps",
+    "prepare": "husky",
+    "postinstall": "husky",
+    "knip:all": "knip",
+    "knip:check": "knip --dependencies --files --no-config-hints --exclude binaries",
+    "knip:write": "pnpm knip:check --fix"
+  },
+  "lint-staged": {
+    "*": [
+      "pnpm pre-commit",
+      "bash -c 'pnpm knip:check'"
+    ]
+  },
+  "standard-version": {
+    "scripts": {
+      "prerelease": "pnpm install && git add .",
+      "postbump": "pnpm check:write && git add ."
+    }
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.2.3",
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "@types/node": "^24.5.2",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "fs-extra": "^11.3.2",
+    "husky": "^9.1.7",
+    "knip": "^5.63.1",
+    "lerna": "^8.2.4",
+    "lint-staged": "^16.1.6",
+    "standard-version": "^9.5.0",
+    "typescript": "^5.9.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "bs58": ">=4.0.1",
+      "@safe-global/safe-apps-provider": ">=0.18.6"
+    }
+  },
+  "packageManager": "pnpm@10.17.0+sha512.fce8a3dd29a4ed2ec566fb53efbb04d8c44a0f05bc6f24a73046910fb9c3ce7afa35a0980500668fa3573345bd644644fa98338fa168235c80f4aa17aa17fbef"
+}
