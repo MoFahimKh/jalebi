@@ -37,3 +37,4 @@ next-env.d.ts
 /.nuxt/
 /.output/
 
+.env
