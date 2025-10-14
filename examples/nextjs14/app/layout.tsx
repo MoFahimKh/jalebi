@@ -11,7 +11,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: PropsWithChildren) {
   return (
     <html lang="en">
-      <body>
+      <body
+       style={{
+        backgroundImage: `url('/bg2.png')`,
+        backgroundSize: "cover",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "center",
+        height: "100vh",
+      }}>
         <AppRouterCacheProvider>{children}</AppRouterCacheProvider>
       </body>
     </html>
