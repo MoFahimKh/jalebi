@@ -9,6 +9,7 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData()
     const file = formData.get('file') as File
+    const lang = (formData.get('lang') as string | null)?.toLowerCase()
 
     if (!file) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
@@ -21,6 +22,7 @@ export async function POST(req: NextRequest) {
     const transcription = await openai.audio.transcriptions.create({
       file: fs.createReadStream(tempPath),
       model: 'whisper-1',
+      ...(lang === 'en' || lang === 'hi' ? { language: lang } : {}),
     })
 
     return NextResponse.json({ text: transcription.text })
@@ -29,4 +31,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
-
