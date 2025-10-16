@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+export const runtime = 'edge'
 import OpenAI from 'openai'
-import fs from 'fs'
-import path from 'path'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
 
@@ -15,12 +14,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer())
-    const tempPath = path.join('/tmp', file.name)
-    await fs.promises.writeFile(tempPath, buffer)
-
+    // Send the uploaded File/Blob directly to OpenAI to avoid disk I/O latency
     const transcription = await openai.audio.transcriptions.create({
-      file: fs.createReadStream(tempPath),
+      file,
+      // Consider swapping to 'gpt-4o-mini-transcribe' for lower latency if available
       model: 'whisper-1',
       ...(lang === 'en' || lang === 'hi' ? { language: lang } : {}),
     })

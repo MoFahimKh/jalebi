@@ -88,6 +88,7 @@ body {
 
 body {
   color: rgb(var(--foreground-rgb));
+  font-family: var(--font-exo2), ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, Roboto, Helvetica, Arial, sans-serif;
 }
 
 a {
@@ -99,4 +100,14 @@ a {
   html {
     color-scheme: dark;
   }
+}
+
+/* Use Orbitron for prominent headings and UI labels */
+h1, h2, h3, h4, h5, h6,
+.orbitron,
+button,
+label,
+.va-title {
+  font-family: var(--font-orbitron), var(--font-exo2), ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: .02em;
 }

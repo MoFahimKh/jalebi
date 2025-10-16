@@ -2,7 +2,14 @@ export function recordAudio() {
   return new Promise<{ start: () => void; stop: () => Promise<Blob> }>(
     async (resolve) => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
+      // Lower bitrate to reduce upload size and speed up transcription
+      const options: MediaRecorderOptions = {}
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        options.mimeType = 'audio/webm;codecs=opus'
+      }
+      // 64kbps is usually enough for speech
+      ;(options as any).audioBitsPerSecond = 64000
+      const mediaRecorder = new MediaRecorder(stream, options)
       let chunks: BlobPart[] = []
 
       mediaRecorder.ondataavailable = (e) => chunks.push(e.data)
@@ -25,4 +32,3 @@ export function recordAudio() {
     }
   )
 }
-
