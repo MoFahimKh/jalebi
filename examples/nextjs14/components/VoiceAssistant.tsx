@@ -249,6 +249,33 @@ export default function VoiceAssistant({
     }
   }, [widgetEvents])
 
+  // Passive voice confirmation for execution (declare before effect to avoid TDZ)
+  const listenForExecYesNo = useCallback(async () => {
+    if (!execProposal) return
+    setStatus('listening')
+    const rec = await recordAudio()
+    rec.start()
+    await new Promise((r) => setTimeout(r, 3000))
+    const blob = await rec.stop()
+    setStatus('processing')
+    const fd = new FormData()
+    fd.append('file', blob, 'confirm-exec.webm')
+    fd.append('lang', transcribeLang)
+    const res = await fetch('/api/transcribe', { method: 'POST', body: fd })
+    const { text } = await res.json()
+    const t = (text || '').toLowerCase().trim()
+    const yes = /^(yes|yeah|yup|ok|okay|sure|confirm|do it|execute|go ahead)\b/.test(t)
+    const no = /^(no|nah|nope|cancel|stop|not now)\b/.test(t)
+    if (yes) {
+      handleExecConfirm()
+    } else if (no) {
+      handleExecCancel()
+    } else {
+      speak('Please say yes or no.')
+    }
+    setStatus('idle')
+  }, [execProposal, transcribeLang, speak])
+
   // When best route becomes available, propose execution and ask for confirmation
   useEffect(() => {
     if (!bestRoute || execAsking || execStatus === 'executing') return
@@ -321,31 +348,7 @@ export default function VoiceAssistant({
     setStatus('idle')
   }, [proposal, transcribeLang, speak])
 
-  const listenForExecYesNo = useCallback(async () => {
-    if (!execProposal) return
-    setStatus('listening')
-    const rec = await recordAudio()
-    rec.start()
-    await new Promise((r) => setTimeout(r, 3000))
-    const blob = await rec.stop()
-    setStatus('processing')
-    const fd = new FormData()
-    fd.append('file', blob, 'confirm-exec.webm')
-    fd.append('lang', transcribeLang)
-    const res = await fetch('/api/transcribe', { method: 'POST', body: fd })
-    const { text } = await res.json()
-    const t = (text || '').toLowerCase().trim()
-    const yes = /^(yes|yeah|yup|ok|okay|sure|confirm|do it|execute|go ahead)\b/.test(t)
-    const no = /^(no|nah|nope|cancel|stop|not now)\b/.test(t)
-    if (yes) {
-      handleExecConfirm()
-    } else if (no) {
-      handleExecCancel()
-    } else {
-      speak('Please say yes or no.')
-    }
-    setStatus('idle')
-  }, [execProposal, transcribeLang, speak])
+  // moved listenForExecYesNo above
 
   const handleConfirm = () => {
     if (!proposal) return
