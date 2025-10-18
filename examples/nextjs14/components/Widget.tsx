@@ -7,7 +7,8 @@ import { useRef } from 'react'
 import VoiceAssistant from './VoiceAssistant'
 
 export function Widget() {
-  const formRef = useRef<any>(null)
+  type WidgetFormRefLike = { setFieldValue: (name: string, value: unknown) => void }
+  const formRef = useRef<WidgetFormRefLike | null>(null)
   const config = {
     appearance: 'light',
     theme: {

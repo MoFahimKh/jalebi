@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react'
-import type { Route } from '@lifi/sdk'
 import type { Intent } from './intentUtils'
 
 type Proposal = {
@@ -59,4 +58,3 @@ export const DebugPanel: React.FC<{
     </div>
   )
 }
-

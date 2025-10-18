@@ -30,8 +30,8 @@ export function useRouteExecution(options?: UseRouteExecutionOptions) {
       })
       setStatus('success')
       return result
-    } catch (e: any) {
-      const message = e?.message || 'Failed to execute route.'
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Failed to execute route.'
       setError(message)
       setStatus('failed')
       throw e
@@ -52,4 +52,3 @@ export function useRouteExecution(options?: UseRouteExecutionOptions) {
     reset,
   }
 }
-

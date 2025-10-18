@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { recordAudio } from '../utils/recorder'
 import type { Route } from '@lifi/sdk'
 import { useWidgetEvents, WidgetEvent } from '@lifi/widget'
@@ -19,10 +19,12 @@ import { useRouteExecution } from './voice/useRouteExecution'
 
 // token resolution now provided by intentUtils.resolveToken
 
+type WidgetFormRefLike = { setFieldValue: (name: string, value: unknown) => void }
+
 export default function VoiceAssistant({
   formRef,
 }: {
-  formRef: React.MutableRefObject<any>
+  formRef: React.MutableRefObject<WidgetFormRefLike | null>
 }) {
   const [status, setStatus] = useState<'idle' | 'listening' | 'processing'>(
     'idle'
@@ -64,7 +66,7 @@ export default function VoiceAssistant({
   const [execProposal, setExecProposal] = useState<Route | null>(null)
   const [execAsking, setExecAsking] = useState(false)
   const lastPromptedRouteIdRef = useRef<string | null>(null)
-  const { status: execStatus, error: execError, execute, reset: resetExec } =
+  const { status: execStatus, execute, reset: resetExec } =
     useRouteExecution({
       onUpdate: () => {
         // No-op for now; widget UI handles progress if user navigates there.
@@ -108,17 +110,7 @@ export default function VoiceAssistant({
 
   // English-only: no language switching
 
-  const allFilled = useMemo(
-    () =>
-      Boolean(
-        intent.source_token &&
-          intent.target_token &&
-          intent.amount &&
-          intent.source_chain &&
-          intent.target_chain
-      ),
-    [intent]
-  )
+  // Derived completeness not used in UI currently
 
   // next question computed per-merge to avoid stale reads
 
@@ -163,7 +155,12 @@ export default function VoiceAssistant({
       const merged: Intent = {
         source_token: newIntent.source_token || local.source_token || intent.source_token,
         target_token: newIntent.target_token || local.target_token || intent.target_token,
-        amount: (newIntent.amount as any) ?? (local.amount as any) ?? intent.amount,
+        amount:
+          typeof newIntent.amount === 'number'
+            ? newIntent.amount
+            : typeof local.amount === 'number'
+            ? local.amount
+            : intent.amount,
         source_chain: newIntent.source_chain || local.source_chain || intent.source_chain,
         target_chain: newIntent.target_chain || local.target_chain || intent.target_chain,
       }
@@ -387,8 +384,9 @@ export default function VoiceAssistant({
       setExecProposal(null)
       setExecAsking(false)
       resetExec()
-    } catch (e: any) {
-      const msg = e?.message?.toString().toLowerCase().includes('not connected')
+    } catch (e: unknown) {
+      const m = e instanceof Error ? e.message : String(e)
+      const msg = m.toLowerCase().includes('not connected')
         ? 'Please connect your wallet to execute the swap.'
         : 'Execution failed. Please try again.'
       speak(msg)

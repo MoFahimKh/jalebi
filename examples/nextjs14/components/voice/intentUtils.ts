@@ -93,7 +93,15 @@ export function extractLocalIntent(text: string): Partial<Intent> {
   if (tgt) out.target_token = normalizeTokenSymbol(tgt[1])
   const srcOnly = !out.source_token && t.match(/\b(?:swap|sell|bridge)\s+([a-z][a-z0-9]*)/i)
   if (srcOnly) out.source_token = normalizeTokenSymbol(srcOnly[1])
-  const onMatches = [...t.matchAll(/\bon\s+([a-z][\w\s-]*?)(?=\s|$|\.|,)/gi)].map((m) => normalizeChainAlias(m[1]))
+  const onMatches = (() => {
+    const re = /\bon\s+([a-z][\w\s-]*?)(?=\s|$|\.|,)/gi
+    const found: string[] = []
+    let m: RegExpExecArray | null
+    while ((m = re.exec(t)) !== null) {
+      found.push(normalizeChainAlias(m[1]))
+    }
+    return found
+  })()
   if (onMatches.length === 1) {
     const idxTo = t.indexOf(' to ')
     const idxOn = t.indexOf(' on ')
@@ -170,18 +178,35 @@ export const formatAmountDisplay = (amount: string | number | bigint, decimals?:
   return n.toLocaleString(undefined, { maximumFractionDigits: 6 })
 }
 
+type StepLike = {
+  type?: string
+  tool?: string
+  logoURI?: string
+  toolDetails?: { name?: string; logoURI?: string; logo?: string }
+  tool_details?: { name?: string; logoURI?: string; logo?: string }
+  action?: {
+    type?: string
+    tool?: string
+    logoURI?: string
+    toolDetails?: { name?: string; logoURI?: string; logo?: string }
+  }
+}
+
 export function getBestDexInfo(route: Route | null) {
   if (!route) return null as null | { name?: string; logoURI?: string }
   try {
-    const steps: any[] = ((route as any).steps || []) as any[]
-    const swapStep = steps.find((s) => (s?.type || s?.action?.type)?.toString().toLowerCase().includes('swap')) || steps[0]
+    const steps = (route as unknown as { steps?: StepLike[] }).steps ?? []
+    const swapStep =
+      steps.find((s) => (s?.type || s?.action?.type)?.toString().toLowerCase().includes('swap')) ||
+      steps[0]
     if (!swapStep) return null
-    const toolDetails = swapStep.toolDetails || swapStep.tool_details || swapStep.action?.toolDetails || null
+    const toolDetails =
+      swapStep.toolDetails || swapStep.tool_details || swapStep.action?.toolDetails || null
     const name = (toolDetails?.name || swapStep.tool || swapStep.action?.tool || '').toString()
-    const logoURI = toolDetails?.logoURI || toolDetails?.logo || swapStep.logoURI || swapStep.action?.logoURI || undefined
+    const logoURI =
+      toolDetails?.logoURI || toolDetails?.logo || swapStep.logoURI || swapStep.action?.logoURI || undefined
     return { name, logoURI }
   } catch {
     return null
   }
 }
-

@@ -21,10 +21,10 @@ export const BestRouteCard: React.FC<{ route: Route | null }> = ({ route }) => {
         </div>
       ) : null}
       <div className="va-br-row">
-        {formatAmountDisplay(route.fromAmount as any, (route.fromToken as any)?.decimals)} {route.fromToken?.symbol}
+        {formatAmountDisplay(route.fromAmount ?? '0', route.fromToken?.decimals)} {route.fromToken?.symbol}
         {' '}
         → {' '}
-        {formatAmountDisplay(route.toAmount as any, (route.toToken as any)?.decimals)} {route.toToken?.symbol}
+        {formatAmountDisplay(route.toAmount ?? '0', route.toToken?.decimals)} {route.toToken?.symbol}
       </div>
       <div className="va-br-meta">
         {route.toAmountUSD ? `≈ $${Number(route.toAmountUSD).toFixed(2)}` : ''}
@@ -44,4 +44,3 @@ export const BestRouteCard: React.FC<{ route: Route | null }> = ({ route }) => {
     </div>
   )
 }
-
