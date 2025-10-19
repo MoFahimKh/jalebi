@@ -67,6 +67,10 @@ export function normalizeTokenSymbol(value?: string | null) {
 export function normalizeChainAlias(value?: string | null) {
   const raw = normalizeName(value).replace(/\b(chain|network)\b/g, '').trim()
   if (!raw) return ''
+  // filter out generic words misheard by STT/LLM
+  if (raw === 'token' || raw === 'tokens' || raw === 'coin' || raw === 'coins') {
+    return ''
+  }
   if (CHAIN_ALIASES[raw]) return CHAIN_ALIASES[raw]
   const collapsed = raw.replace(/\s+/g, ' ').trim()
   if (CHAIN_ALIASES[collapsed]) return CHAIN_ALIASES[collapsed]
@@ -128,13 +132,37 @@ export async function resolveToken(
     const cached = tokenCache.get(key)
     return cached || undefined
   }
-  const response = await getTokens({
-    chainTypes: [ChainType.EVM],
-    extended: false,
-    search: symbolOrName,
-    limit: 20,
-  })
-  const tokens = response.tokens?.[chainId] || []
+  let tokens: Token[] = []
+  try {
+    const response = await getTokens({
+      chainTypes: [ChainType.EVM],
+      extended: false,
+      search: symbolOrName,
+      limit: 20,
+    })
+    tokens = response.tokens?.[chainId] || []
+  } catch {
+    // Fallback via API route to avoid browser/network/CORS issues
+    try {
+      const res = await fetch('/api/resolve-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chainId, search: symbolOrName }),
+      })
+      if (res.ok) {
+        const data = (await res.json()) as { token: Token | null }
+        if (data.token) {
+          tokenCache.set(key, data.token)
+          return data.token
+        }
+      }
+      console.warn('Token resolution failed via server route:', await res.text())
+      return undefined
+    } catch (e2) {
+      console.warn('Token resolution network failure:', e2)
+      return undefined
+    }
+  }
   const upper = symbolOrName.toUpperCase()
   let found = tokens.find((t) => t.symbol?.toUpperCase() === upper)
   if (!found) {

@@ -26,6 +26,9 @@ export default function VoiceAssistant({
 }: {
   formRef: React.MutableRefObject<WidgetFormRefLike | null>
 }) {
+  type EIP1193Provider = {
+    request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
+  }
   const [status, setStatus] = useState<'idle' | 'listening' | 'processing'>(
     'idle'
   )
@@ -176,24 +179,50 @@ export default function VoiceAssistant({
         try {
           const sourceChainName = normalizeChainAlias(merged.source_chain)
           const targetChainName = normalizeChainAlias(merged.target_chain)
-          const fromChainId = CHAIN_IDS[sourceChainName] || CHAIN_IDS['ethereum']
-          const toChainId = CHAIN_IDS[targetChainName] || fromChainId
+          const fromChainId = CHAIN_IDS[sourceChainName]
+          const toChainId = CHAIN_IDS[targetChainName] ?? fromChainId
 
           const fromSymbol = normalizeTokenSymbol(merged.source_token)
           const toSymbol = normalizeTokenSymbol(merged.target_token)
 
+          if (!fromChainId) {
+            speak('On which source chain should I look?')
+            setStatus('idle')
+            return
+          }
           const [fromToken, toToken] = await Promise.all([
             resolveToken(fromChainId, fromSymbol),
-            resolveToken(toChainId, toSymbol),
+            toChainId ? resolveToken(toChainId, toSymbol) : Promise.resolve(undefined),
           ])
 
           if (!fromToken || !toToken) {
-            speak('I could not resolve the tokens. Please try again.')
+            const offline = typeof navigator !== 'undefined' && navigator && navigator.onLine === false
+            speak(
+              offline
+                ? 'Network looks offline. Please check your connection and try again.'
+                : 'I could not resolve the tokens. Please try again.'
+            )
             setStatus('idle')
             return
           }
 
-          const msg = 'You want to swap ' + merged.amount + ' ' + fromSymbol + ' on ' + (sourceChainName || 'ethereum') + ' to ' + toSymbol + (toChainId !== fromChainId ? ' on ' + (targetChainName || '') : '') + '. Should I proceed to find the best route?'
+          if (!toChainId) {
+            speak('On which destination chain should I send it?')
+            setStatus('idle')
+            return
+          }
+          const msg =
+            'You want to ' +
+            (fromSymbol === toSymbol && fromChainId !== toChainId ? 'bridge ' : 'swap ') +
+            merged.amount +
+            ' ' +
+            fromSymbol +
+            ' on ' +
+            (sourceChainName || '') +
+            ' to ' +
+            toSymbol +
+            (toChainId !== fromChainId ? ' on ' + (targetChainName || '') : '') +
+            '. Should I proceed to find the best route?'
           setProposal({
             fromChainId,
             toChainId,
@@ -349,6 +378,15 @@ export default function VoiceAssistant({
 
   const handleConfirm = () => {
     if (!proposal) return
+    // Avoid invalid same-token same-chain combination which yields no route
+    if (
+      proposal.fromChainId === proposal.toChainId &&
+      proposal.fromTokenAddress.toLowerCase() ===
+        proposal.toTokenAddress.toLowerCase()
+    ) {
+      speak('That is the same token on the same chain. Please change the token or destination chain.')
+      return
+    }
     formRef.current?.setFieldValue('fromChain', proposal.fromChainId)
     formRef.current?.setFieldValue('fromToken', proposal.fromTokenAddress)
     formRef.current?.setFieldValue('fromAmount', String(proposal.amount))
@@ -377,6 +415,77 @@ export default function VoiceAssistant({
     try {
       const info = getBestDexInfo(execProposal)
       const dex = info?.name || 'the selected route'
+
+      // Basic wallet presence + connection + chain checks for EVM
+      const eth: EIP1193Provider | null =
+        typeof window !== 'undefined'
+          ? ((window as unknown as { ethereum?: EIP1193Provider }).ethereum || null)
+          : null
+      if (!eth) {
+        speak('No EVM wallet detected. Please use the widget to connect your wallet and try again.')
+        return
+      }
+      try {
+        const accounts = ((await eth.request({ method: 'eth_accounts' })) || []) as string[]
+        if (!accounts.length) {
+          speak('Please connect your wallet using the widget and try again.')
+          return
+        }
+
+        const ensureChain = async (targetChainId: number) => {
+          const readChainId = async () => {
+            const hex = (await eth.request({ method: 'eth_chainId' })) as string
+            return parseInt(hex, 16)
+          }
+          const current = await readChainId()
+          if (current === targetChainId) return true
+          try {
+            await eth.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x' + targetChainId.toString(16) }],
+            })
+          } catch (switchErr) {
+            console.warn('wallet_switchEthereumChain failed:', switchErr)
+            return false
+          }
+          // Wait until provider and wagmi observers sync chain
+          const ok = await new Promise<boolean>((resolve) => {
+            let settled = false
+            const timeout = setTimeout(async () => {
+              if (settled) return
+              const c = await readChainId()
+              settled = true
+              resolve(c === targetChainId)
+            }, 1200)
+            // Some providers emit chainChanged; listen once
+            const handler = (chainIdHex: string | number) => {
+              if (settled) return
+              const id = typeof chainIdHex === 'string' ? parseInt(chainIdHex, 16) : Number(chainIdHex)
+              if (id === targetChainId) {
+                settled = true
+                clearTimeout(timeout)
+                resolve(true)
+              }
+            }
+            // Try to subscribe to provider events if available
+            // Attach listener if provider supports events
+            const prov = eth as unknown as {
+              on?: (event: string, cb: (arg: unknown) => void) => void
+            }
+            prov.on?.('chainChanged', (cid) => handler(cid as string | number))
+          })
+          return ok
+        }
+
+        const aligned = await ensureChain(execProposal.fromChainId)
+        if (!aligned) {
+          speak('Please switch your wallet network to the source chain and try again.')
+          return
+        }
+      } catch (preErr) {
+        console.warn('Wallet pre-check failed:', preErr)
+      }
+
       speak(`Starting the swap via ${dex}. Please confirm the transaction in your wallet.`)
       await execute(execProposal)
       speak('Swap executed successfully.')
@@ -386,8 +495,12 @@ export default function VoiceAssistant({
       resetExec()
     } catch (e: unknown) {
       const m = e instanceof Error ? e.message : String(e)
-      const msg = m.toLowerCase().includes('not connected')
+      console.error('Route execution failed:', e)
+      const ml = m.toLowerCase()
+      const msg = ml.includes('not connected') || ml.includes('account is not connected')
         ? 'Please connect your wallet to execute the swap.'
+        : ml.includes('user rejected') || ml.includes('user rejected the request')
+        ? 'Transaction rejected in wallet.'
         : 'Execution failed. Please try again.'
       speak(msg)
     }

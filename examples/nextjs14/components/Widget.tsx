@@ -17,6 +17,20 @@ export function Widget() {
         borderRadius: '16px',
       },
     },
+    // Prefer stable chains, avoid flaky RPCs
+    chains: {
+      allow: [1, 10, 137, 42161, 8453, 43114],
+    },
+    // Route options and tool restrictions
+    sdkConfig: {
+      routeOptions: {
+        allowSwitchChain: true,
+      },
+    },
+    exchanges: {
+      // Cautiously deny known-problematic aggregator key if present
+      deny: ['relay'],
+    },
   } as Partial<WidgetConfig>
 
   return (
