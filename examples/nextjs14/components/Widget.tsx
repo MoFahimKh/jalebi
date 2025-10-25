@@ -1,13 +1,9 @@
 'use client'
 
 import type { WidgetConfig } from '@lifi/widget'
-import { LiFiWidget, WidgetSkeleton } from '@lifi/widget'
+import { LiFiWidget, WidgetSkeleton, HiddenUI } from '@lifi/widget'
 import { ClientOnly } from './ClientOnly'
-import {
-  useRef,
-  useState,
-  useEffect,
-} from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import VoiceAssistant from './VoiceAssistant'
 
 type WidgetFormRefLike = { setFieldValue: (name: string, value: unknown) => void }
@@ -17,8 +13,8 @@ const shortenAddress = (address?: string | null) =>
 
 export function Widget() {
   const formRef = useRef<WidgetFormRefLike | null>(null)
-  const [widgetOpen, setWidgetOpen] = useState(false)
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
+  const hiddenWidgetRef = useRef<HTMLDivElement | null>(null)
   const config: WidgetConfig = {
     integrator: 'nextjs-example',
     appearance: 'light',
@@ -72,51 +68,118 @@ export function Widget() {
     }
   }, [])
 
-  const handleCloseOverlay = () => setWidgetOpen(false)
-  const handleOpenOverlay = () => setWidgetOpen(true)
+  const updateAddressFromWidget = useCallback(() => {
+    const container = hiddenWidgetRef.current
+    if (!container) return false
+    const buttons = Array.from(
+      container.querySelectorAll('button')
+    ) as HTMLButtonElement[]
+    const walletButton = buttons.find((btn) => {
+      const text = btn.textContent?.toLowerCase().trim() ?? ''
+      if (!text) return false
+      return text.includes('connect wallet') || text.startsWith('0x')
+    })
+    if (!walletButton) return false
+    const text = walletButton.textContent?.trim() ?? ''
+    if (/connect wallet/i.test(text)) {
+      setWalletAddress((prev) => (prev !== null ? null : prev))
+    } else if (text) {
+      setWalletAddress((prev) => (prev !== text ? text : prev))
+    }
+    return true
+  }, [])
+
+  const triggerWalletMenu = useCallback(() => {
+    const attemptClick = () => {
+      const container = hiddenWidgetRef.current
+      if (!container) {
+        return false
+      }
+      const buttons = Array.from(
+        container.querySelectorAll('button')
+      ) as HTMLButtonElement[]
+      const target = buttons.find((btn) => {
+        const text = btn.textContent?.toLowerCase().trim() ?? ''
+        if (!text) return false
+        if (text.includes('connect wallet')) return true
+        if (walletAddress) {
+          const short = shortenAddress(walletAddress).toLowerCase()
+          if (short && text.includes(short.replace('…', ''))) return true
+          if (text.includes(walletAddress.slice(0, 6).toLowerCase())) return true
+        }
+        return false
+      })
+      if (target) {
+        target.dispatchEvent(
+          new MouseEvent('click', {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+          })
+        )
+        updateAddressFromWidget()
+        return true
+      }
+      return false
+    }
+
+    if (attemptClick()) {
+      return
+    }
+
+    let tries = 0
+    const maxTries = 10
+    const interval = window.setInterval(() => {
+      tries += 1
+      const clicked = attemptClick()
+      updateAddressFromWidget()
+      if (clicked || tries >= maxTries) {
+        window.clearInterval(interval)
+        if (tries >= maxTries) {
+          console.warn('Wallet controls not ready yet.')
+        }
+      }
+    }, 120)
+  }, [updateAddressFromWidget, walletAddress])
+
+  useEffect(() => {
+    const container = hiddenWidgetRef.current
+    if (!container) return
+    const observer = new MutationObserver(() => {
+      updateAddressFromWidget()
+    })
+    observer.observe(container, {
+      subtree: true,
+      characterData: true,
+      childList: true,
+    })
+    updateAddressFromWidget()
+    return () => observer.disconnect()
+  }, [updateAddressFromWidget])
 
   return (
     <ClientOnly fallback={<WidgetSkeleton config={config} />}>
       <div className="assistant-shell">
         <div className="assistant-wallet">
-          {walletAddress ? (
-            <span className="assistant-wallet-chip">
-              {shortenAddress(walletAddress)}
-            </span>
-          ) : null}
           <button
             type="button"
             className="assistant-wallet-link"
-            onClick={handleOpenOverlay}
+            onClick={triggerWalletMenu}
           >
-            {walletAddress ? 'Manage Wallet' : 'Connect Wallet'}
+            {walletAddress ? shortenAddress(walletAddress) : 'Connect Wallet'}
           </button>
         </div>
         <VoiceAssistant
           formRef={formRef}
-          onRequireWallet={handleOpenOverlay}
+          onRequireWallet={triggerWalletMenu}
         />
       </div>
-      <div
-        className={'widget-overlay' + (widgetOpen ? ' open' : '')}
-        aria-hidden={!widgetOpen}
-        role="dialog"
-      >
-        <div className="widget-frame">
-          <div className="widget-header">
-            <span>{walletAddress ? 'Wallet & Swap Controls' : 'Connect Wallet'}</span>
-            <button type="button" onClick={handleCloseOverlay} aria-label="Close widget">
-              ×
-            </button>
-          </div>
-          <div className="widget-content">
-            <LiFiWidget
-              config={{ ...config, variant: 'wide' }}
-              integrator="nextjs-example"
-              formRef={formRef}
-            />
-          </div>
-        </div>
+      <div ref={hiddenWidgetRef} className="widget-hidden">
+        <LiFiWidget
+          config={{ ...config, variant: 'wide', hiddenUI: [HiddenUI.PoweredBy] }}
+          integrator="nextjs-example"
+          formRef={formRef}
+        />
       </div>
       <style jsx>{`
         .assistant-shell {
@@ -129,17 +192,6 @@ export function Widget() {
           top: 16px;
           right: 16px;
           z-index: 60;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .assistant-wallet-chip {
-          border-radius: 999px;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          background: rgba(18, 18, 20, 0.45);
-          color: #f4f4f8;
-          font-size: 13px;
-          padding: 8px 14px;
         }
         .assistant-wallet-link {
           border-radius: 999px;
@@ -156,59 +208,15 @@ export function Widget() {
           transform: translateY(-1px);
           box-shadow: 0 6px 18px rgba(59, 130, 246, 0.3);
         }
-        .widget-overlay {
+        .widget-hidden {
           position: fixed;
-          inset: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: rgba(7, 10, 26, 0.65);
-          backdrop-filter: blur(12px);
+          top: -9999px;
+          left: -9999px;
+          width: 1px;
+          height: 1px;
           opacity: 0;
           pointer-events: none;
-          transition: opacity 0.2s ease;
-          z-index: 70;
-        }
-        .widget-overlay.open {
-          opacity: 1;
-          pointer-events: auto;
-        }
-        .widget-frame {
-          width: min(480px, 90vw);
-          max-height: 90vh;
-          background: #0b0d1e;
-          border-radius: 18px;
           overflow: hidden;
-          box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
-          display: flex;
-          flex-direction: column;
-        }
-        .widget-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 12px 16px;
-          color: #f4f4f8;
-          font-size: 14px;
-          font-weight: 500;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        .widget-header button {
-          background: transparent;
-          border: none;
-          color: inherit;
-          font-size: 24px;
-          cursor: pointer;
-          line-height: 1;
-        }
-        .widget-content {
-          flex: 1;
-          overflow: auto;
-          background: #10142d;
-          padding: 12px;
-        }
-        :global(.widget-content > div) {
-          pointer-events: auto;
         }
       `}</style>
     </ClientOnly>
