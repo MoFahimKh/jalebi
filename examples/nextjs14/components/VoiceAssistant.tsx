@@ -13,7 +13,6 @@ import {
   type Intent,
 } from './voice/intentUtils'
 import { BestRouteCard } from './voice/BestRouteCard'
-import { DebugPanel } from './voice/DebugPanel'
 import { getBestDexInfo } from './voice/intentUtils'
 import { useRouteExecution } from './voice/useRouteExecution'
 
@@ -21,13 +20,19 @@ import { useRouteExecution } from './voice/useRouteExecution'
 
 type WidgetFormRefLike = { setFieldValue: (name: string, value: unknown) => void }
 
+interface VoiceAssistantProps {
+  formRef: React.MutableRefObject<WidgetFormRefLike | null>
+  onRequireWallet?: () => void
+  bestRoute: Route | null
+  onBestRouteChange?: (route: Route | null) => void
+}
+
 export default function VoiceAssistant({
   formRef,
   onRequireWallet,
-}: {
-  formRef: React.MutableRefObject<WidgetFormRefLike | null>
-  onRequireWallet?: () => void
-}) {
+  bestRoute,
+  onBestRouteChange,
+}: VoiceAssistantProps) {
   type EIP1193Provider = {
     request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
   }
@@ -67,7 +72,6 @@ export default function VoiceAssistant({
   const recorderRef = useRef<Awaited<ReturnType<typeof recordAudio>> | null>(null)
   const keyDownRef = useRef(false)
   const widgetEvents = useWidgetEvents()
-  const [bestRoute, setBestRoute] = useState<Route | null>(null)
   const [execProposal, setExecProposal] = useState<Route | null>(null)
   const [execAsking, setExecAsking] = useState(false)
   const lastPromptedRouteIdRef = useRef<string | null>(null)
@@ -264,10 +268,14 @@ export default function VoiceAssistant({
   // Listen for available routes and selection to show a small best route card
   useEffect(() => {
     const onAvailable = (routes: Route[]) => {
-      if (routes && routes.length > 0) setBestRoute(routes[0])
+      if (routes && routes.length > 0) {
+        onBestRouteChange?.(routes[0])
+      } else {
+        onBestRouteChange?.(null)
+      }
     }
     const onSelected = ({ route }: { route: Route }) => {
-      setBestRoute(route)
+      onBestRouteChange?.(route)
     }
     widgetEvents.on(WidgetEvent.AvailableRoutes, onAvailable)
     widgetEvents.on(WidgetEvent.RouteSelected, onSelected)
@@ -275,7 +283,7 @@ export default function VoiceAssistant({
       widgetEvents.off(WidgetEvent.AvailableRoutes, onAvailable)
       widgetEvents.off(WidgetEvent.RouteSelected, onSelected)
     }
-  }, [widgetEvents])
+  }, [widgetEvents, onBestRouteChange])
 
   // Passive voice confirmation for execution (declare before effect to avoid TDZ)
   const listenForExecYesNo = useCallback(async () => {
@@ -612,8 +620,6 @@ export default function VoiceAssistant({
 
       <BestRouteCard route={bestRoute} />
 
-      <DebugPanel intent={intent} proposal={proposal} lastApplied={lastApplied} />
-
       <style jsx>{`
         .va-root { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(820px, calc(100% - 24px)); z-index: 50; pointer-events: none; }
         .va-container { pointer-events: auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px; border-radius: 16px; background: rgba(18,18,20,0.55); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 6px 24px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.02); backdrop-filter: blur(12px) saturate(1.2); -webkit-backdrop-filter: blur(12px) saturate(1.2); color: #e7e7ea; font-family: inherit; }
@@ -646,7 +652,6 @@ export default function VoiceAssistant({
         .va-btn.primary { background: linear-gradient(135deg, #4F46E5 0%, #0EA5E9 100%); }
         .va-btn.secondary { background: rgba(255,255,255,0.08); }
         .va-btn[disabled] { opacity: .6; cursor: not-allowed; }
-        /* debug panel styles live in DebugPanel */
         @keyframes orb-breathe { 0%,100% { transform: scale(.96) } 50% { transform: scale(1.08) } }
         @keyframes ring-pulse { 0% { transform: scale(1); opacity: .35 } 70% { transform: scale(1.6); opacity: 0 } 100% { opacity: 0 } }
         @keyframes dot { 0%, 60%, 100% { transform: translateY(0); opacity: .8 } 30% { transform: translateY(-3px); opacity: 1 } }

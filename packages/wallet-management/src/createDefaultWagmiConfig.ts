@@ -119,8 +119,10 @@ export function createDefaultWagmiConfig(
     }
   }
 
-  if (recentConnectorId?.includes?.('porto') || !props?.lazy) {
-    connectors.unshift(createPortoConnector(props?.porto))
+  if (props?.porto) {
+    if (recentConnectorId?.includes?.('porto') || !props?.lazy) {
+      connectors.unshift(createPortoConnector(props.porto))
+    }
   }
 
   return {

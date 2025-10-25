@@ -1,9 +1,10 @@
 'use client'
 
+import type { Route } from '@lifi/sdk'
 import type { WidgetConfig } from '@lifi/widget'
 import { LiFiWidget, WidgetSkeleton, HiddenUI } from '@lifi/widget'
 import { ClientOnly } from './ClientOnly'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import VoiceAssistant from './VoiceAssistant'
 
 type WidgetFormRefLike = { setFieldValue: (name: string, value: unknown) => void }
@@ -14,62 +15,144 @@ const shortenAddress = (address?: string | null) =>
 export function Widget() {
   const formRef = useRef<WidgetFormRefLike | null>(null)
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
-  const hiddenWidgetRef = useRef<HTMLDivElement | null>(null)
-  const config: WidgetConfig = {
-    integrator: 'nextjs-example',
-    appearance: 'light',
-    theme: {
-      container: {
-        border: '1px solid rgb(234, 234, 234)',
-        borderRadius: '16px',
-      },
-    },
-    chains: {
-      allow: [1, 10, 137, 42161, 8453, 43114],
-    },
-    sdkConfig: {
-      routeOptions: {
-        allowSwitchChain: true,
-      },
-    },
-    exchanges: {
-      deny: ['relay'],
-    },
-  }
+  const widgetRef = useRef<HTMLDivElement | null>(null)
+  const [bestRoute, setBestRoute] = useState<Route | null>(null)
+  const [widgetReady, setWidgetReady] = useState(false)
 
-  type Ethereumish = {
-    request?: (args: { method: string; params?: unknown[] }) => Promise<unknown>
-    on?: (event: string, listener: (...args: unknown[]) => void) => void
-    removeListener?: (event: string, listener: (...args: unknown[]) => void) => void
-  }
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const eth = (window as unknown as { ethereum?: Ethereumish }).ethereum
-    if (!eth?.request) return
-
-    const updateAccounts = (accounts: string[] = []) => {
-      setWalletAddress(accounts[0] ?? null)
-    }
-
-    eth
-      .request({ method: 'eth_accounts' })
-      .then((accounts: string[]) => updateAccounts(accounts))
-      .catch(() => {})
-
-    const handleAccountsChanged = (accounts: string[]) => {
-      updateAccounts(accounts)
-    }
-
-    eth.on?.('accountsChanged', handleAccountsChanged)
-
-    return () => {
-      eth.removeListener?.('accountsChanged', handleAccountsChanged)
+  const handleBestRouteChange = useCallback((route: Route | null) => {
+    setBestRoute(route)
+    if (route) {
+      setWidgetReady(true)
     }
   }, [])
 
+  const glassTheme = useMemo(
+    () => ({
+      container: {
+        borderRadius: '28px',
+        padding: '24px',
+        background:
+          'linear-gradient(135deg, rgba(23, 25, 39, 0.78), rgba(16, 18, 30, 0.62))',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        boxShadow: '0 30px 80px rgba(10, 12, 30, 0.55)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+      },
+      routesContainer: {
+        background: 'rgba(18, 21, 34, 0.45)',
+        borderRadius: '24px',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+      },
+      header: {
+        background: 'rgba(18, 20, 32, 0.45)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+      },
+      navigation: {
+        edge: false,
+      },
+      components: {
+        MuiCard: {
+          styleOverrides: {
+            root: {
+              background: 'rgba(15, 18, 29, 0.55)',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+            },
+          },
+        },
+        MuiInputCard: {
+          styleOverrides: {
+            root: {
+              background: 'rgba(20, 23, 36, 0.5)',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+            },
+          },
+        },
+        MuiButton: {
+          styleOverrides: {
+            root: {
+              borderRadius: '999px',
+              textTransform: 'none',
+            },
+            contained: {
+              backgroundImage:
+                'linear-gradient(135deg, #5b8cff 0%, #996dff 100%)',
+              color: '#ffffff',
+              boxShadow: '0 14px 28px rgba(90, 116, 255, 0.35)',
+              '&:hover': {
+                boxShadow: '0 18px 36px rgba(90, 116, 255, 0.45)',
+                filter: 'brightness(1.05)',
+              },
+            },
+          },
+        },
+        MuiIconButton: {
+          styleOverrides: {
+            root: {
+              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+              backdropFilter: 'blur(18px)',
+              WebkitBackdropFilter: 'blur(18px)',
+            },
+          },
+        },
+        MuiTabs: {
+          styleOverrides: {
+            root: {
+              background: 'rgba(16, 18, 30, 0.55)',
+              borderRadius: '999px',
+              padding: '4px',
+            },
+            indicator: {
+              borderRadius: '999px',
+              backgroundImage:
+                'linear-gradient(135deg, #5b8cff 0%, #996dff 100%)',
+            },
+          },
+        },
+        MuiNavigationTabs: {
+          styleOverrides: {
+            root: {
+              background: 'rgba(16, 18, 30, 0.55)',
+            },
+          },
+        },
+      },
+    }),
+    []
+  )
+
+  const config = useMemo<WidgetConfig>(
+    () => ({
+      integrator: 'nextjs-example',
+      appearance: 'dark',
+      variant: 'wide',
+      hiddenUI: [HiddenUI.PoweredBy],
+      theme: glassTheme,
+      chains: {
+        allow: [1, 10, 137, 42161, 8453, 43114],
+      },
+      sdkConfig: {
+        routeOptions: {
+          allowSwitchChain: true,
+        },
+      },
+      exchanges: {
+        deny: ['relay'],
+      },
+    }),
+    [glassTheme]
+  )
+
   const updateAddressFromWidget = useCallback(() => {
-    const container = hiddenWidgetRef.current
+    const container = widgetRef.current
     if (!container) return false
     const buttons = Array.from(
       container.querySelectorAll('button')
@@ -91,7 +174,7 @@ export function Widget() {
 
   const triggerWalletMenu = useCallback(() => {
     const attemptClick = () => {
-      const container = hiddenWidgetRef.current
+      const container = widgetRef.current
       if (!container) {
         return false
       }
@@ -143,7 +226,7 @@ export function Widget() {
   }, [updateAddressFromWidget, walletAddress])
 
   useEffect(() => {
-    const container = hiddenWidgetRef.current
+    const container = widgetRef.current
     if (!container) return
     const observer = new MutationObserver(() => {
       updateAddressFromWidget()
@@ -169,54 +252,129 @@ export function Widget() {
             {walletAddress ? shortenAddress(walletAddress) : 'Connect Wallet'}
           </button>
         </div>
+        <div className="widget-stage">
+          <div
+            ref={widgetRef}
+            className={`widget-glass${widgetReady ? '' : ' hidden'}`}
+          >
+            <LiFiWidget
+              config={config}
+              integrator="nextjs-example"
+              formRef={formRef}
+            />
+          </div>
+        </div>
         <VoiceAssistant
           formRef={formRef}
           onRequireWallet={triggerWalletMenu}
-        />
-      </div>
-      <div ref={hiddenWidgetRef} className="widget-hidden">
-        <LiFiWidget
-          config={{ ...config, variant: 'wide', hiddenUI: [HiddenUI.PoweredBy] }}
-          integrator="nextjs-example"
-          formRef={formRef}
+          bestRoute={bestRoute}
+          onBestRouteChange={handleBestRouteChange}
         />
       </div>
       <style jsx>{`
         .assistant-shell {
           position: relative;
-          display: grid;
-          gap: 16px;
+          min-height: 100vh;
+          padding: 96px 24px 160px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 32px;
+          background: radial-gradient(
+              160% 160% at 50% 0%,
+              rgba(99, 102, 241, 0.18),
+              rgba(3, 7, 18, 0.94)
+            ),
+            radial-gradient(
+              120% 120% at 0% 100%,
+              rgba(56, 189, 248, 0.12),
+              transparent
+            );
+        }
+        .widget-stage {
+          width: min(960px, 100%);
+        }
+        .widget-glass {
+          position: relative;
+          border-radius: 32px;
+          padding: 24px;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: linear-gradient(
+            135deg,
+            rgba(23, 25, 39, 0.78),
+            rgba(14, 16, 27, 0.62)
+          );
+          box-shadow: 0 32px 80px rgba(6, 8, 20, 0.55);
+          backdrop-filter: blur(26px);
+          -webkit-backdrop-filter: blur(26px);
+          opacity: 1;
+          pointer-events: auto;
+          transform: translateY(0);
+          transition: opacity 0.35s ease, transform 0.35s ease;
+        }
+        .widget-glass::before {
+          content: '';
+          position: absolute;
+          inset: 2px;
+          border-radius: 30px;
+          border: 1px solid rgba(255, 255, 255, 0.04);
+          pointer-events: none;
+        }
+        .widget-glass.hidden {
+          opacity: 0;
+          pointer-events: none;
+          transform: translateY(24px);
+        }
+        .widget-glass :global(.MuiPaper-root) {
+          background: transparent;
+          box-shadow: none;
+        }
+        .widget-glass :global(.MuiPopover-paper) {
+          background: rgba(17, 19, 30, 0.85);
+          backdrop-filter: blur(22px);
+          -webkit-backdrop-filter: blur(22px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
         }
         .assistant-wallet {
           position: fixed;
-          top: 16px;
-          right: 16px;
+          top: 24px;
+          right: 24px;
           z-index: 60;
         }
         .assistant-wallet-link {
           border-radius: 999px;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          background: rgba(18, 18, 20, 0.6);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          background: rgba(18, 18, 26, 0.68);
           color: #f4f4f8;
           font-size: 13px;
-          padding: 8px 16px;
+          letter-spacing: 0.01em;
+          padding: 10px 20px;
           cursor: pointer;
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
           transition: transform 0.12s ease, box-shadow 0.2s ease,
             background 0.2s ease;
         }
         .assistant-wallet-link:hover {
           transform: translateY(-1px);
-          box-shadow: 0 6px 18px rgba(59, 130, 246, 0.3);
+          background: rgba(24, 24, 32, 0.78);
+          box-shadow: 0 12px 32px rgba(88, 106, 255, 0.38);
         }
-        .widget-hidden {
-          position: fixed;
-          top: -9999px;
-          left: -9999px;
-          width: 1px;
-          height: 1px;
-          opacity: 0;
-          pointer-events: none;
-          overflow: hidden;
+        @media (max-width: 768px) {
+          .assistant-shell {
+            padding: 72px 16px 160px;
+          }
+          .assistant-wallet {
+            top: 16px;
+            right: 16px;
+          }
+          .widget-glass {
+            padding: 16px;
+            border-radius: 24px;
+          }
+          .widget-glass::before {
+            border-radius: 22px;
+          }
         }
       `}</style>
     </ClientOnly>

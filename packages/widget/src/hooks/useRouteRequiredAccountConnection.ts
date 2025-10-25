@@ -39,7 +39,8 @@ export const useRouteRequiredAccountConnection = (
 
       const connectedAccount = connectedChainTypes.get(chain.chainType)
       const isToAddressSatisfied = toAddress
-        ? connectedAccount?.address === step.action.fromAddress
+        ? connectedAccount?.address?.toLowerCase() ===
+          step.action.fromAddress?.toLowerCase()
         : true
 
       if (!connectedAccount || !isToAddressSatisfied) {
