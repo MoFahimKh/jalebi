@@ -1,7 +1,7 @@
 'use client'
 
 import type { Route } from '@lifi/sdk'
-import type { WidgetConfig } from '@lifi/widget'
+import type { WidgetConfig, WidgetTheme } from '@lifi/widget'
 import { LiFiWidget, WidgetSkeleton, HiddenUI } from '@lifi/widget'
 import { ClientOnly } from './ClientOnly'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -26,7 +26,7 @@ export function Widget() {
     }
   }, [])
 
-  const glassTheme = useMemo(
+  const glassTheme = useMemo<WidgetTheme>(
     () => ({
       container: {
         borderRadius: '28px',
@@ -79,7 +79,7 @@ export function Widget() {
           styleOverrides: {
             root: {
               borderRadius: '999px',
-              textTransform: 'none',
+              textTransform: 'none' as const,
             },
             contained: {
               backgroundImage:

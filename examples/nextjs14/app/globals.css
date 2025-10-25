@@ -5,6 +5,8 @@
     ui-monospace, Menlo, Monaco, "Cascadia Mono", "Segoe UI Mono",
     "Roboto Mono", "Oxygen Mono", "Ubuntu Monospace", "Source Code Pro",
     "Fira Mono", "Droid Sans Mono", "Courier New", monospace;
+  --font-orbitron: "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-exo2: "Inter", "Segoe UI", system-ui, sans-serif;
 
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;

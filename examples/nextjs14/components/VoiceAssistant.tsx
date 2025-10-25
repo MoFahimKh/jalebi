@@ -12,7 +12,6 @@ import {
   resolveToken,
   type Intent,
 } from './voice/intentUtils'
-import { BestRouteCard } from './voice/BestRouteCard'
 import { getBestDexInfo } from './voice/intentUtils'
 import { useRouteExecution } from './voice/useRouteExecution'
 
@@ -58,7 +57,7 @@ export default function VoiceAssistant({
     fromTokenAddress: string
     toTokenAddress: string
   } | null>(null)
-  const [lastApplied, setLastApplied] = useState<{
+  const [, setLastApplied] = useState<{
     fromChainId: number
     toChainId: number
     fromSymbol: string
@@ -82,9 +81,7 @@ export default function VoiceAssistant({
       },
     })
 
-  // best route rendering handled by BestRouteCard
-
-  // formatting moved to utils and BestRouteCard
+  // formatting moved to utils
 
   // English-only speech (prefer en-IN voice), cancel previous
   const speak = useCallback((text: string, lang: string = 'en-IN') => {
@@ -116,6 +113,65 @@ export default function VoiceAssistant({
       console.warn('speak failed', e)
     }
   }, [])
+
+  const handleConfirm = useCallback(() => {
+    if (!proposal) return
+    if (
+      proposal.fromChainId === proposal.toChainId &&
+      proposal.fromTokenAddress.toLowerCase() ===
+        proposal.toTokenAddress.toLowerCase()
+    ) {
+      speak('That is the same token on the same chain. Please change the token or destination chain.')
+      return
+    }
+    formRef.current?.setFieldValue('fromChain', proposal.fromChainId)
+    formRef.current?.setFieldValue('fromToken', proposal.fromTokenAddress)
+    formRef.current?.setFieldValue('fromAmount', String(proposal.amount))
+    formRef.current?.setFieldValue('toChain', proposal.toChainId)
+    formRef.current?.setFieldValue('toToken', proposal.toTokenAddress)
+    setLastApplied({
+      fromChainId: proposal.fromChainId,
+      toChainId: proposal.toChainId,
+      fromSymbol: proposal.fromSymbol,
+      toSymbol: proposal.toSymbol,
+      amount: proposal.amount,
+      sourceChainName: proposal.sourceChainName,
+      targetChainName: proposal.targetChainName,
+    })
+    speak('Confirmed. Finding the best route for your swap now.')
+    setProposal(null)
+  }, [formRef, proposal, speak])
+
+  const handleCancel = useCallback(() => {
+    setProposal(null)
+    speak('Okay. What would you like to change?')
+  }, [speak])
+
+  const listenForYesNo = useCallback(async () => {
+    if (!proposal) return
+    setStatus('listening')
+    const rec = await recordAudio()
+    rec.start()
+    await new Promise((r) => setTimeout(r, 3000))
+    const blob = await rec.stop()
+    setStatus('processing')
+    const fd = new FormData()
+    fd.append('file', blob, 'confirm.webm')
+    fd.append('lang', transcribeLang)
+    const res = await fetch('/api/transcribe', { method: 'POST', body: fd })
+    const { text } = await res.json()
+    const t = (text || '').toLowerCase().trim()
+    const yes = /^(yes|yeah|yup|ok|okay|sure|confirm|do it|go ahead)\b/.test(t)
+    const no = /^(no|nah|nope|cancel|stop|not now)\b/.test(t)
+    if (yes) {
+      handleConfirm()
+    } else if (no) {
+      handleCancel()
+    } else {
+      speak('Please say yes or no.')
+    }
+    setStatus('idle')
+  }, [handleCancel, handleConfirm, proposal, speak, transcribeLang])
 
   // English-only: no language switching
 
@@ -263,7 +319,7 @@ export default function VoiceAssistant({
     } finally {
       setStatus('idle')
     }
-  }, [transcribeLang, intent, speak])
+  }, [transcribeLang, intent, speak, listenForYesNo])
 
   // Listen for available routes and selection to show a small best route card
   useEffect(() => {
@@ -286,141 +342,7 @@ export default function VoiceAssistant({
   }, [widgetEvents, onBestRouteChange])
 
   // Passive voice confirmation for execution (declare before effect to avoid TDZ)
-  const listenForExecYesNo = useCallback(async () => {
-    if (!execProposal) return
-    setStatus('listening')
-    const rec = await recordAudio()
-    rec.start()
-    await new Promise((r) => setTimeout(r, 3000))
-    const blob = await rec.stop()
-    setStatus('processing')
-    const fd = new FormData()
-    fd.append('file', blob, 'confirm-exec.webm')
-    fd.append('lang', transcribeLang)
-    const res = await fetch('/api/transcribe', { method: 'POST', body: fd })
-    const { text } = await res.json()
-    const t = (text || '').toLowerCase().trim()
-    const yes = /^(yes|yeah|yup|ok|okay|sure|confirm|do it|execute|go ahead)\b/.test(t)
-    const no = /^(no|nah|nope|cancel|stop|not now)\b/.test(t)
-    if (yes) {
-      handleExecConfirm()
-    } else if (no) {
-      handleExecCancel()
-    } else {
-      speak('Please say yes or no.')
-    }
-    setStatus('idle')
-  }, [execProposal, transcribeLang, speak])
-
-  // When best route becomes available, propose execution and ask for confirmation
-  useEffect(() => {
-    if (!bestRoute || execAsking || execStatus === 'executing') return
-    if (lastPromptedRouteIdRef.current === bestRoute.id) return
-    // Only prompt when we have just applied a search (i.e., after proposal confirm)
-    // Heuristic: when lastApplied matches current intent summary, we can offer execution
-    const info = getBestDexInfo(bestRoute)
-    const dex = info?.name || 'the best available route'
-    const fromSym = bestRoute.fromToken?.symbol || 'token'
-    const toSym = bestRoute.toToken?.symbol || 'token'
-    const msg = `I found the best route via ${dex}. Swap ${fromSym} to ${toSym}. Should I execute it?`
-    setExecProposal(bestRoute)
-    setExecAsking(true)
-    lastPromptedRouteIdRef.current = bestRoute.id
-    speak(msg)
-    // Start passive confirmation listening window
-    listenForExecYesNo()
-    // We do not auto-listen here to avoid interrupting user; provide quick confirm UI and allow voice confirm via space again
-    // Users can press Space to answer; but we also provide a small confirm bar below.
-  }, [bestRoute, execAsking, execStatus, speak, listenForExecYesNo])
-
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' || e.key === ' ') {
-        if (keyDownRef.current) return
-        keyDownRef.current = true
-        e.preventDefault()
-        startRecording()
-      }
-    }
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (e.code === 'Space' || e.key === ' ') {
-        if (!keyDownRef.current) return
-        keyDownRef.current = false
-        e.preventDefault()
-        stopAndProcess()
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('keyup', onKeyUp)
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('keyup', onKeyUp)
-    }
-  }, [startRecording, stopAndProcess])
-
-  const listenForYesNo = useCallback(async () => {
-    if (!proposal) return
-    setStatus('listening')
-    const rec = await recordAudio()
-    rec.start()
-    await new Promise((r) => setTimeout(r, 3000))
-    const blob = await rec.stop()
-    setStatus('processing')
-    const fd = new FormData()
-    fd.append('file', blob, 'confirm.webm')
-    fd.append('lang', transcribeLang)
-    const res = await fetch('/api/transcribe', { method: 'POST', body: fd })
-    const { text } = await res.json()
-    const t = (text || '').toLowerCase().trim()
-    const yes = /^(yes|yeah|yup|ok|okay|sure|confirm|do it|go ahead)\b/.test(t)
-    const no = /^(no|nah|nope|cancel|stop|not now)\b/.test(t)
-    if (yes) {
-      handleConfirm()
-    } else if (no) {
-      handleCancel()
-    } else {
-      speak('Please say yes or no.')
-    }
-    setStatus('idle')
-  }, [proposal, transcribeLang, speak])
-
-  // moved listenForExecYesNo above
-
-  const handleConfirm = () => {
-    if (!proposal) return
-    // Avoid invalid same-token same-chain combination which yields no route
-    if (
-      proposal.fromChainId === proposal.toChainId &&
-      proposal.fromTokenAddress.toLowerCase() ===
-        proposal.toTokenAddress.toLowerCase()
-    ) {
-      speak('That is the same token on the same chain. Please change the token or destination chain.')
-      return
-    }
-    formRef.current?.setFieldValue('fromChain', proposal.fromChainId)
-    formRef.current?.setFieldValue('fromToken', proposal.fromTokenAddress)
-    formRef.current?.setFieldValue('fromAmount', String(proposal.amount))
-    formRef.current?.setFieldValue('toChain', proposal.toChainId)
-    formRef.current?.setFieldValue('toToken', proposal.toTokenAddress)
-    setLastApplied({
-      fromChainId: proposal.fromChainId,
-      toChainId: proposal.toChainId,
-      fromSymbol: proposal.fromSymbol,
-      toSymbol: proposal.toSymbol,
-      amount: proposal.amount,
-      sourceChainName: proposal.sourceChainName,
-      targetChainName: proposal.targetChainName,
-    })
-    speak('Confirmed. Finding the best route for your swap now.')
-    setProposal(null)
-  }
-
-  const handleCancel = () => {
-    setProposal(null)
-    speak('Okay. What would you like to change?')
-  }
-
-  const handleExecConfirm = async () => {
+  const handleExecConfirm = useCallback(async () => {
     if (!execProposal) return
     try {
       const info = getBestDexInfo(execProposal)
@@ -526,9 +448,9 @@ export default function VoiceAssistant({
             : 'Execution failed. Please try again.'
       speak(msg)
     }
-  }
+  }, [execProposal, execute, onRequireWallet, resetExec, speak])
 
-  const handleExecCancel = () => {
+  const handleExecCancel = useCallback(() => {
     setExecAsking(false)
     setExecProposal(null)
     if (execStatus === 'executing') {
@@ -536,8 +458,79 @@ export default function VoiceAssistant({
     } else {
       speak('Okay, I will not execute the swap.')
     }
-  }
+  }, [execStatus, speak])
 
+  const listenForExecYesNo = useCallback(async () => {
+    if (!execProposal) return
+    setStatus('listening')
+    const rec = await recordAudio()
+    rec.start()
+    await new Promise((r) => setTimeout(r, 3000))
+    const blob = await rec.stop()
+    setStatus('processing')
+    const fd = new FormData()
+    fd.append('file', blob, 'confirm-exec.webm')
+    fd.append('lang', transcribeLang)
+    const res = await fetch('/api/transcribe', { method: 'POST', body: fd })
+    const { text } = await res.json()
+    const t = (text || '').toLowerCase().trim()
+    const yes = /^(yes|yeah|yup|ok|okay|sure|confirm|do it|execute|go ahead)\b/.test(t)
+    const no = /^(no|nah|nope|cancel|stop|not now)\b/.test(t)
+    if (yes) {
+      handleExecConfirm()
+    } else if (no) {
+      handleExecCancel()
+    } else {
+      speak('Please say yes or no.')
+    }
+    setStatus('idle')
+  }, [execProposal, transcribeLang, speak, handleExecCancel, handleExecConfirm])
+
+  // When best route becomes available, propose execution and ask for confirmation
+  useEffect(() => {
+    if (!bestRoute || execAsking || execStatus === 'executing') return
+    if (lastPromptedRouteIdRef.current === bestRoute.id) return
+    // Only prompt when we have just applied a search (i.e., after proposal confirm)
+    // Heuristic: when lastApplied matches current intent summary, we can offer execution
+    const info = getBestDexInfo(bestRoute)
+    const dex = info?.name || 'the best available route'
+    const fromSym = bestRoute.fromToken?.symbol || 'token'
+    const toSym = bestRoute.toToken?.symbol || 'token'
+    const msg = `I found the best route via ${dex}. Swap ${fromSym} to ${toSym}. Should I execute it?`
+    setExecProposal(bestRoute)
+    setExecAsking(true)
+    lastPromptedRouteIdRef.current = bestRoute.id
+    speak(msg)
+    // Start passive confirmation listening window
+    listenForExecYesNo()
+    // We do not auto-listen here to avoid interrupting user; provide quick confirm UI and allow voice confirm via space again
+    // Users can press Space to answer; but we also provide a small confirm bar below.
+  }, [bestRoute, execAsking, execStatus, speak, listenForExecYesNo])
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' || e.key === ' ') {
+        if (keyDownRef.current) return
+        keyDownRef.current = true
+        e.preventDefault()
+        startRecording()
+      }
+    }
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space' || e.key === ' ') {
+        if (!keyDownRef.current) return
+        keyDownRef.current = false
+        e.preventDefault()
+        stopAndProcess()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+    }
+  }, [startRecording, stopAndProcess])
   return (
     <div className="va-root" aria-live="polite">
       <div className="va-container">
@@ -617,9 +610,6 @@ export default function VoiceAssistant({
           </div>
         </div>
       ) : null}
-
-      <BestRouteCard route={bestRoute} />
-
       <style jsx>{`
         .va-root { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(820px, calc(100% - 24px)); z-index: 50; pointer-events: none; }
         .va-container { pointer-events: auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px; border-radius: 16px; background: rgba(18,18,20,0.55); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 6px 24px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.02); backdrop-filter: blur(12px) saturate(1.2); -webkit-backdrop-filter: blur(12px) saturate(1.2); color: #e7e7ea; font-family: inherit; }
