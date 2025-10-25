@@ -79,12 +79,17 @@ export function Widget() {
     <ClientOnly fallback={<WidgetSkeleton config={config} />}>
       <div className="assistant-shell">
         <div className="assistant-wallet">
+          {walletAddress ? (
+            <span className="assistant-wallet-chip">
+              {shortenAddress(walletAddress)}
+            </span>
+          ) : null}
           <button
             type="button"
             className="assistant-wallet-link"
             onClick={handleOpenOverlay}
           >
-            {walletAddress ? `Manage ${shortenAddress(walletAddress)}` : 'Connect Wallet'}
+            {walletAddress ? 'Manage Wallet' : 'Connect Wallet'}
           </button>
         </div>
         <VoiceAssistant
@@ -124,6 +129,17 @@ export function Widget() {
           top: 16px;
           right: 16px;
           z-index: 60;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .assistant-wallet-chip {
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: rgba(18, 18, 20, 0.45);
+          color: #f4f4f8;
+          font-size: 13px;
+          padding: 8px 14px;
         }
         .assistant-wallet-link {
           border-radius: 999px;
